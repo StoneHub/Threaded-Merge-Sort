@@ -67,7 +67,46 @@ void * mergeSort(void * arg){
 }
 
 //combine half(s) of array into one array
-int merge(){
+int merge(int *a, int *b, int low, int pivot, int high){
+
+    int h,l,j,k;
+    h=low;
+    l=low;
+    j=pivot+1;
+
+    while((h<=pivot)&&(j<=high))
+    {
+        if(a[h]<=a[j])
+        {
+            b[l]=a[h];
+            h++;
+        }
+        else
+        {
+            b[l]=a[j];
+            j++;
+        }
+        l++;
+    }
+    if(h>pivot)
+    {
+        for(k=j; k<=high; k++)
+        {
+            b[l]=a[k];
+            l++;
+        }
+    }
+    else
+    {
+        for(k=h; k<=pivot; k++)
+        {
+            b[l]=a[k];
+            l++;
+        }
+    }
+    for(k=low; k<=high; k++) a[k]=b[k];
+
+
 	printf("Merging!!!!!!!!\n");
 }
 
