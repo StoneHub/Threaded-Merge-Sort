@@ -59,9 +59,11 @@ int* array_cpy(int* OG){
 
 //
 void * mergeSort(void * arg){
-	printf("Remember threads execute out of order\n");
-	printf("====================================================\n");
-
+	cout <<"Remember threads execute out of order" << endl;
+	cout << "=======================================" << endl;
+	Args *args = (Args *) arg;
+	cout << args->array[100000-1] << endl;
+	// print_array(args->array);
 }
 
 //combine half(s) of array into one array
@@ -83,7 +85,10 @@ int main(int argc, char *argv[]) {
 	pthread_t mainThread;
 	int ret; 	
 	ret = pthread_create(&mainThread, NULL, mergeSort, &args);
-	print_array(carray);
+	//join threads  //if i didnt join the main would finish before merge() could do anything.
+	void *status;
+	pthread_join(mainThread, &status);
+	// print_array(carray);
 
     return 0;
 }
