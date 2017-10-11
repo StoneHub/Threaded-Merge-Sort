@@ -7,18 +7,23 @@ Mason Strohl
 
 #include <fstream>
 #include <iostream>
+#include <pthread.h>
 using namespace std;
 
+//struct for passing arguments into threads
 typedef struct
 {
 	int left, right; 
 	int *array;
 	int *target;
-}args;
+	int *Vreturn;
+}Args;
 
-	int array[100000];
+//Global's 
+int array[100000];
 
-
+//Functions 
+//Read from file called "input.txt"
 void read_input() {
 	int i, index = 0;
     fstream cin;
@@ -30,19 +35,55 @@ void read_input() {
 	cin.close();
 }
 
-void print_array() {
+//Print function
+void print_array(int* A) {
 	int i = 0;
 	while (i < 100000)
 	{
-		cout << array[i++] << endl;
+		cout << A[i++] << endl;
 	}
 }
 
-int main(int argc, char *argv[]) {
-	int* arrayptr; 
-	arrayptr = array; 
-	read_input();
+//Array copy
+int* array_cpy(int* OG){
+	int i = 0;
+	int* CP = new int[100000];
+	while (i < 100000)
+	{
+		CP[i] = OG[i];
+		// cout << CP[i] << "    " << OG[i] << endl;
+		i++;
+	}
+	return CP;
+}
 
+//
+void * mergeSort(void * arg){
+	printf("Remember threads execute out of order\n");
+	printf("====================================================\n");
+
+}
+
+//combine half(s) of array into one array
+int merge(){
+	printf("Merging!!!!!!!!\n");
+}
+
+int main(int argc, char *argv[]) {
+	//build global array
+	read_input();
+	//create a copy of the array and make a pointer to it
+	int *carray = array_cpy(&array[0]);
+	//create args struct and fill
+	Args args;
+	args.left = 0;
+	args.right = array[100000-1];
+	args.array = &carray[0];
+	//start main thread
+	pthread_t mainThread;
+	int ret; 	
+	ret = pthread_create(&mainThread, NULL, mergeSort, &args);
+	print_array(carray);
 
     return 0;
 }
