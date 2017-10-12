@@ -9,15 +9,16 @@ Mason Strohl
 #include <iostream>
 #include <pthread.h>
 using namespace std;
-
+pthread_mutex_t lockNumThread;
+int numThread;
 //struct for passing arguments into threads
 typedef struct
 {
 	int left, right; 
 	int *array;
 	int *target;
-	int *Vreturn;
-}Args;
+	int Tid;
+}ArgStruct;
 
 //Global's 
 int array[100000];
@@ -57,77 +58,122 @@ int* array_cpy(int* OG){
 	return CP;
 }
 
-//
-void * mergeSort(void * arg){
-	cout <<"Remember threads execute out of order" << endl;
-	cout << "=======================================" << endl;
-	Args *args = (Args *) arg;
-	cout << args->array[100000-1] << endl;
-	// print_array(args->array);
-}
 
 //combine half(s) of array into one array
-int merge(int *a, int *b, int low, int pivot, int high){
+void merge(int *A, int left, int right){
+	cout << "Merging for index " << left << "-" << right << endl;
+	
+		int L = left;
+		int R = right; 
+		int midd = L + ((R - L) / 2);
+		int midPlusOne = midd + 1;		
+		int index = 0;
+		int *B = new int[100000];
+		while((L <= midd) && (midPlusOne <= R))
+		{
+		    if(A[L] <= A[midPlusOne])
+		    {
+		        B[index++] = A[L++];
+		    }
+		    else
+		    {
+				B[index++] = A[(midPlusOne)++];
+		    }
+		}
 
-    int h,l,j,k;
-    h=low;
-    l=low;
-    j=pivot+1;
+		if (L == midd + 1) {
+			while ((midPlusOne) <= R){
+				B[index++] = A[(midPlusOne)++];
+			}
+		} 
+		else {
+			while (L <= midd){
+				B[index++] = A[L++];
+			}
+		}
 
-    while((h<=pivot)&&(j<=high))
-    {
-        if(a[h]<=a[j])
-        {
-            b[l]=a[h];
-            h++;
-        }
-        else
-        {
-            b[l]=a[j];
-            j++;
-        }
-        l++;
-    }
-    if(h>pivot)
-    {
-        for(k=j; k<=high; k++)
-        {
-            b[l]=a[k];
-            l++;
-        }
-    }
-    else
-    {
-        for(k=h; k<=pivot; k++)
-        {
-            b[l]=a[k];
-            l++;
-        }
-    }
-    for(k=low; k<=high; k++) a[k]=b[k];
+		L = left;
+		index = 0;
+		while (L <= R){
+			A[L++] = B[index++];
+		}
 
+		return;
+	}
 
-	printf("Merging!!!!!!!!\n");
+void * mergeSortThreaded(void * arg){
+
+	//set up arguments 
+	ArgStruct *args = (ArgStruct *) arg;
+	int left = args->left;
+	int right = args->right;
+	int * A = args->array;
+	int * B = args->target;
+	int midd;
+
+	//base case 
+	if (args->left < args->right){	
+		midd = left+(right-left)/2;
+
+		//set up args for the left thread
+		ArgStruct Largs;
+		Largs.left = left;
+		Largs.right = midd;
+		Largs.array = args->array;
+		cout << "Creating thread for left half of list index " << Largs.left << "-" << Largs.right << endl; 
+		//lock
+		// pthread_mutex_lock(&lockNumThread);		
+			Largs.Tid = numThread++;
+		// pthread_mutex_unlock(&lockNumThread);
+		int ret = 0; 	
+		pthread_t leftThread;
+		ret = pthread_create(&leftThread, NULL, mergeSortThreaded, (void *) &Largs);
+		pthread_join(leftThread, NULL);		
+
+		//set up args for the right thread
+		ArgStruct Rargs;
+		Rargs.left = midd+1;
+		Rargs.right = right;
+		Rargs.array = args->array;
+		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 	
+		//lock
+		// pthread_mutex_lock(&lockNumThread);		
+			Rargs.Tid = numThread++;
+		// pthread_mutex_unlock(&lockNumThread);			
+		pthread_t rightThread;
+		ret = pthread_create(&rightThread, NULL, mergeSortThreaded, (void *) &Rargs);
+		pthread_join(rightThread, NULL);
+	
+		cout << "NUM THREADS::: " << numThread << endl;
+		
+		// merge(args->array, left, right);		
+	}
+	pthread_exit(NULL);
+	print_array(A);
+	
+}
+
+void mergeSort(int *array, int left, int right){
+	ArgStruct args;
+	args.array = array;
+	args.left = left;
+	args.right = right;
+
+	cout <<"Remember threads execute out of order" << endl;
+	cout << "=======================================" << endl;
+
+	pthread_t thread;
+	int id = pthread_create(&thread, NULL, mergeSortThreaded, &args);
+	pthread_join(thread, NULL);
+	return; 
 }
 
 int main(int argc, char *argv[]) {
 	//build global array
 	read_input();
-	//create a copy of the array and make a pointer to it
-	int *carray = array_cpy(&array[0]);
-	//create args struct and fill
-	Args args;
-	args.left = 0;
-	args.right = array[100000-1];
-	args.array = &carray[0];
-	//start main thread
-	pthread_t mainThread;
-	int ret; 	
-	ret = pthread_create(&mainThread, NULL, mergeSort, &args);
-	//join threads  //if i didnt join the main would finish before merge() could do anything.
-	void *status;
-	pthread_join(mainThread, &status);
-	// print_array(carray);
+	
+	//launch into mergeSort
+	mergeSort(array, 0, 500);
 
     return 0;
 }
