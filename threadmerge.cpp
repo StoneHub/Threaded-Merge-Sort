@@ -17,7 +17,6 @@ typedef struct
 	int left, right; 
 	int *array;
 	int *target;
-	int Tid;
 }ArgStruct;
 
 //Global's 
@@ -60,57 +59,54 @@ int* array_cpy(int* OG){
 }
 
 
-void merge(int arr[], int l, int m, int r)
+// A function to merge the two half into a sorted data.
+void merge(int *a, int low, int high, int mid)
 {
-    int i, j, k;
-    int n1 = m - l + 1;
-    int n2 =  r - m;
+	// We have low to mid and mid+1 to high already sorted.
+	int i, j, k, temp[high-low+1];
+	i = low;
+	k = 0;
+	j = mid + 1;
  
-    /* create temp arrays */
-    int L[n1], R[n2];
+	// Merge the two parts into temp[].
+	while (i <= mid && j <= high)
+	{
+		if (a[i] < a[j])
+		{
+			temp[k] = a[i];
+			k++;
+			i++;
+		}
+		else
+		{
+			temp[k] = a[j];
+			k++;
+			j++;
+		}
+	}
  
-    /* Copy data to temp arrays L[] and R[] */
-    for (i = 0; i < n1; i++)
-        L[i] = arr[l + i];
-    for (j = 0; j < n2; j++)
-        R[j] = arr[m + 1+ j];
+	// Insert all the remaining values from i to mid into temp[].
+	while (i <= mid)
+	{
+		temp[k] = a[i];
+		k++;
+		i++;
+	}
  
-    /* Merge the temp arrays back into arr[l..r]*/
-    i = 0; // Initial index of first subarray
-    j = 0; // Initial index of second subarray
-    k = l; // Initial index of merged subarray
-    while (i < n1 && j < n2)
-    {
-        if (L[i] <= R[j])
-        {
-            arr[k] = L[i];
-            i++;
-        }
-        else
-        {
-            arr[k] = R[j];
-            j++;
-        }
-        k++;
-    }
+	// Insert all the remaining values from j to high into temp[].
+	while (j <= high)
+	{
+		temp[k] = a[j];
+		k++;
+		j++;
+	}
  
-    /* Copy the remaining elements of L[], if there
-       are any */
-    while (i < n1)
-    {
-        arr[k] = L[i];
-        i++;
-        k++;
-    }
  
-    /* Copy the remaining elements of R[], if there
-       are any */
-    while (j < n2)
-    {
-        arr[k] = R[j];
-        j++;
-        k++;
-    }
+	// Assign sorted data stored in temp[] to a[].
+	for (i = low; i <= high; i++)
+	{
+		a[i] = temp[i-low];
+	}
 }
 
 void * mergeSortThreaded(void * arg){
@@ -121,17 +117,16 @@ void * mergeSortThreaded(void * arg){
 	int right = args->right;
 	int * A = args->array;
 	int * B = args->target;
-	int midd;
 
 	//base case 
 	if (args->left < args->right){	
-		midd = left+(right-left)/2;
-
+		int midd = (left + right)/2;				
 		//set up args for the left thread
 		ArgStruct Largs;
 		Largs.left = left;
 		Largs.right = midd;
 		Largs.array = args->array;
+		int middL = (Largs.left + Largs.right)/2;				
 		cout << "Creating thread for left half of list index " << Largs.left << "-" << Largs.right << endl; 
 		int ret = 0; 	
 		pthread_t leftThread;
@@ -139,7 +134,7 @@ void * mergeSortThreaded(void * arg){
 		cout << "Merging for index " << Largs.left << "-" << Largs.right << endl;
 		pthread_join(leftThread, NULL);	
 		
-		merge(args->array, left, midd, right);		
+		// merge(Largs.array, Largs.left, Largs.right, middL);		
 		
 
 		//set up args for the right thread
@@ -147,16 +142,19 @@ void * mergeSortThreaded(void * arg){
 		Rargs.left = midd+1;
 		Rargs.right = right;
 		Rargs.array = args->array;
+		int midd2 = (Rargs.left + Rargs.right)/2;				
 		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 				
 		pthread_t rightThread;
 		ret = pthread_create(&rightThread, NULL, mergeSortThreaded, (void *) &Rargs);
 		cout << "Merging for index " << Rargs.left << "-" << Rargs.right << endl;		
 		pthread_join(rightThread, NULL);
 	
-		merge(args->array, left, midd, right);		
+		// merge(Rargs.array, Rargs.left, Rargs.right, midd2);	
+		merge(args->array, left, right, midd);	
+
+		cout << "Exiting Thread for index " << left << "- " << right << endl;
+		pthread_exit(NULL);	
 	}	
-	cout << "Exiting Thread for index " << left << "- " << right << endl;
-	pthread_exit(NULL);	
 }
 
 void mergeSort(int *array, int left, int right){
