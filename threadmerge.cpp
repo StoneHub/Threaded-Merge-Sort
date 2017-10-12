@@ -22,6 +22,7 @@ typedef struct
 
 //Global's 
 int array[100000];
+int finArray[100000];
 
 //Functions 
 //Read from file called "input.txt"
@@ -39,7 +40,7 @@ void read_input() {
 //Print function
 void print_array(int* A) {
 	int i = 0;
-	while (i < 100000)
+	while (i < 500)
 	{
 		cout << A[i++] << endl;
 	}
@@ -59,47 +60,58 @@ int* array_cpy(int* OG){
 }
 
 
-//combine half(s) of array into one array
-void merge(int *A, int left, int right){
-	cout << "Merging for index " << left << "-" << right << endl;
-	
-		int L = left;
-		int R = right; 
-		int midd = L + ((R - L) / 2);
-		int midPlusOne = midd + 1;		
-		int index = 0;
-		int *B = new int[100000];
-		while((L <= midd) && (midPlusOne <= R))
-		{
-		    if(A[L] <= A[midPlusOne])
-		    {
-		        B[index++] = A[L++];
-		    }
-		    else
-		    {
-				B[index++] = A[(midPlusOne)++];
-		    }
-		}
-
-		if (L == midd + 1) {
-			while ((midPlusOne) <= R){
-				B[index++] = A[(midPlusOne)++];
-			}
-		} 
-		else {
-			while (L <= midd){
-				B[index++] = A[L++];
-			}
-		}
-
-		L = left;
-		index = 0;
-		while (L <= R){
-			A[L++] = B[index++];
-		}
-
-		return;
-	}
+void merge(int arr[], int l, int m, int r)
+{
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 =  r - m;
+ 
+    /* create temp arrays */
+    int L[n1], R[n2];
+ 
+    /* Copy data to temp arrays L[] and R[] */
+    for (i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1+ j];
+ 
+    /* Merge the temp arrays back into arr[l..r]*/
+    i = 0; // Initial index of first subarray
+    j = 0; // Initial index of second subarray
+    k = l; // Initial index of merged subarray
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            arr[k] = L[i];
+            i++;
+        }
+        else
+        {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+ 
+    /* Copy the remaining elements of L[], if there
+       are any */
+    while (i < n1)
+    {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+ 
+    /* Copy the remaining elements of R[], if there
+       are any */
+    while (j < n2)
+    {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
 
 void * mergeSortThreaded(void * arg){
 
@@ -121,36 +133,30 @@ void * mergeSortThreaded(void * arg){
 		Largs.right = midd;
 		Largs.array = args->array;
 		cout << "Creating thread for left half of list index " << Largs.left << "-" << Largs.right << endl; 
-		//lock
-		// pthread_mutex_lock(&lockNumThread);		
-			Largs.Tid = numThread++;
-		// pthread_mutex_unlock(&lockNumThread);
 		int ret = 0; 	
 		pthread_t leftThread;
 		ret = pthread_create(&leftThread, NULL, mergeSortThreaded, (void *) &Largs);
-		pthread_join(leftThread, NULL);		
+		cout << "Merging for index " << Largs.left << "-" << Largs.right << endl;
+		pthread_join(leftThread, NULL);	
+		
+		merge(args->array, left, midd, right);		
+		
 
 		//set up args for the right thread
 		ArgStruct Rargs;
 		Rargs.left = midd+1;
 		Rargs.right = right;
 		Rargs.array = args->array;
-		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 	
-		//lock
-		// pthread_mutex_lock(&lockNumThread);		
-			Rargs.Tid = numThread++;
-		// pthread_mutex_unlock(&lockNumThread);			
+		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 				
 		pthread_t rightThread;
 		ret = pthread_create(&rightThread, NULL, mergeSortThreaded, (void *) &Rargs);
+		cout << "Merging for index " << Rargs.left << "-" << Rargs.right << endl;		
 		pthread_join(rightThread, NULL);
 	
-		cout << "NUM THREADS::: " << numThread << endl;
-		
-		// merge(args->array, left, right);		
-	}
-	pthread_exit(NULL);
-	print_array(A);
-	
+		merge(args->array, left, midd, right);		
+	}	
+	cout << "Exiting Thread for index " << left << "- " << right << endl;
+	pthread_exit(NULL);	
 }
 
 void mergeSort(int *array, int left, int right){
@@ -174,6 +180,7 @@ int main(int argc, char *argv[]) {
 	
 	//launch into mergeSort
 	mergeSort(array, 0, 500);
-
+	print_array(array);
+	
     return 0;
 }
