@@ -8,10 +8,13 @@ Mason Strohl
 #include <fstream>
 #include <iostream>
 #include <pthread.h>
+
+//includes
 using namespace std;
 pthread_mutex_t lockNumThread;
 int numThread;
-//struct for passing arguments into threads
+
+//struct for passing arguments into threads. will be used as a pointer
 typedef struct
 {
 	int left, right; 
@@ -21,7 +24,6 @@ typedef struct
 
 //Global's 
 int array[100000];
-int finArray[100000];
 
 //Functions 
 //Read from file called "input.txt"
@@ -36,26 +38,14 @@ void read_input() {
 	cin.close();
 }
 
-//Print function
+//Print array ptr function
 void print_array(int* A) {
 	int i = 0;
-	while (i < 500)
+	cout << "Merge Sorted Array: " << endl;
+	while (i < 100000)
 	{
 		cout << A[i++] << endl;
 	}
-}
-
-//Array copy
-int* array_cpy(int* OG){
-	int i = 0;
-	int* CP = new int[100000];
-	while (i < 100000)
-	{
-		CP[i] = OG[i];
-		// cout << CP[i] << "    " << OG[i] << endl;
-		i++;
-	}
-	return CP;
 }
 
 
@@ -67,48 +57,38 @@ void merge(int *a, int low, int high, int mid)
 	i = low;
 	k = 0;
 	j = mid + 1;
- 
 	// Merge the two parts into temp[].
-	while (i <= mid && j <= high)
-	{
-		if (a[i] < a[j])
-		{
+	while (i <= mid && j <= high){
+		if (a[i] < a[j]){
 			temp[k] = a[i];
 			k++;
 			i++;
 		}
-		else
-		{
+		else{
 			temp[k] = a[j];
 			k++;
 			j++;
 		}
-	}
- 
+	} 
 	// Insert all the remaining values from i to mid into temp[].
-	while (i <= mid)
-	{
+	while (i <= mid){
 		temp[k] = a[i];
 		k++;
 		i++;
 	}
- 
 	// Insert all the remaining values from j to high into temp[].
-	while (j <= high)
-	{
+	while (j <= high){
 		temp[k] = a[j];
 		k++;
 		j++;
 	}
- 
- 
 	// Assign sorted data stored in temp[] to a[].
-	for (i = low; i <= high; i++)
-	{
+	for (i = low; i <= high; i++){
 		a[i] = temp[i-low];
 	}
 }
 
+//function that splits array and recursively creates threads to solve merge sort
 void * mergeSortThreaded(void * arg){
 
 	//set up arguments 
@@ -128,13 +108,14 @@ void * mergeSortThreaded(void * arg){
 		Largs.array = args->array;
 		int middL = (Largs.left + Largs.right)/2;				
 		cout << "Creating thread for left half of list index " << Largs.left << "-" << Largs.right << endl; 
+		//create left thread
 		int ret = 0; 	
 		pthread_t leftThread;
 		ret = pthread_create(&leftThread, NULL, mergeSortThreaded, (void *) &Largs);
 		cout << "Merging for index " << Largs.left << "-" << Largs.right << endl;
 		pthread_join(leftThread, NULL);	
 		
-		// merge(Largs.array, Largs.left, Largs.right, middL);		
+		merge(Largs.array, Largs.left, Largs.right, middL);		
 		
 
 		//set up args for the right thread
@@ -143,20 +124,22 @@ void * mergeSortThreaded(void * arg){
 		Rargs.right = right;
 		Rargs.array = args->array;
 		int midd2 = (Rargs.left + Rargs.right)/2;				
-		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 				
+		cout << "Creating thread for right half of list index " << Rargs.left << "-" << Rargs.right << endl; 	
+		//create right thread			
 		pthread_t rightThread;
 		ret = pthread_create(&rightThread, NULL, mergeSortThreaded, (void *) &Rargs);
 		cout << "Merging for index " << Rargs.left << "-" << Rargs.right << endl;		
 		pthread_join(rightThread, NULL);
 	
-		// merge(Rargs.array, Rargs.left, Rargs.right, midd2);	
-		merge(args->array, left, right, midd);	
-
-		cout << "Exiting Thread for index " << left << "- " << right << endl;
+		merge(Rargs.array, Rargs.left, Rargs.right, midd2);	
+		// merge(args->array, left, right, midd);	
+		//kill threads
+		cout << "Exiting Thread for index " << left << " - " << right << endl;
 		pthread_exit(NULL);	
 	}	
 }
 
+//function that creates the data structure for threads and creates the parent thread that keeps program alive
 void mergeSort(int *array, int left, int right){
 	ArgStruct args;
 	args.array = array;
@@ -172,13 +155,13 @@ void mergeSort(int *array, int left, int right){
 	return; 
 }
 
+//simple main function 
 int main(int argc, char *argv[]) {
 	//build global array
 	read_input();
-	
 	//launch into mergeSort
-	mergeSort(array, 0, 500);
+	mergeSort(array, 0, 100000);
+	//print anwser
 	print_array(array);
-	
     return 0;
 }
